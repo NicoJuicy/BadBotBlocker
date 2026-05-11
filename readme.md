@@ -79,6 +79,31 @@ public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 }
 ```
 
+### Reverse Proxy Support (Docker, Nginx, Cloudflare)
+
+If your application runs behind a reverse proxy, the middleware automatically checks `CF-Connecting-IP`, `X-Real-IP`, and `X-Forwarded-For` headers as a fallback.
+
+For best results, add `UseForwardedHeaders()` **before** `UseBadBotBlocker()`:
+
+```csharp
+using Microsoft.AspNetCore.HttpOverrides;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddBadBotBlocker();
+
+var app = builder.Build();
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
+app.UseBadBotBlocker();
+app.Run();
+```
+
+> **Note:** `UseForwardedHeaders()` updates `RemoteIpAddress` with the real client IP from proxy headers. The BadBotBlocker middleware uses this as its primary source but also parses proxy headers directly as a safety net.
+
 ## How It Works
 
 The **BadBotBlocker** middleware intercepts incoming HTTP requests and performs the following checks:
