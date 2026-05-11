@@ -58,6 +58,47 @@ public sealed partial class BadBotMiddleware
         return !SpecialCharacterPattern().IsMatch(trimmedPattern);
     }
 
+    private static readonly string[] ForwardedHeaderNames =
+    [
+        "CF-Connecting-IP",
+        "X-Real-IP",
+        "X-Forwarded-For",
+    ];
+
+    /// <summary>
+    /// Resolves the client IP address, checking common reverse proxy headers as a fallback.
+    /// For best results, use <c>UseForwardedHeaders()</c> before <c>UseBadBotBlocker()</c>.
+    /// </summary>
+    private static IPAddress? ResolveClientIpAddress(HttpContext context)
+    {
+        // Prefer RemoteIpAddress (already updated by UseForwardedHeaders if configured)
+        var ipAddress = context.Connection.RemoteIpAddress;
+
+        // If it's a loopback or not set, check proxy headers as a fallback
+        if (ipAddress is null || IPAddress.IsLoopback(ipAddress))
+        {
+            foreach (var headerName in ForwardedHeaderNames)
+            {
+                var headerValue = context.Request.Headers[headerName].FirstOrDefault();
+
+                if (string.IsNullOrEmpty(headerValue))
+                {
+                    continue;
+                }
+
+                // X-Forwarded-For can contain multiple IPs; the first is the client
+                var candidateIp = headerValue.Split(',', StringSplitOptions.TrimEntries)[0];
+
+                if (IPAddress.TryParse(candidateIp, out var parsed))
+                {
+                    return parsed;
+                }
+            }
+        }
+
+        return ipAddress;
+    }
+
     /// <summary>
     /// Invokes the middleware.
     /// </summary>
@@ -65,8 +106,8 @@ public sealed partial class BadBotMiddleware
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task InvokeAsync(HttpContext context)
     {
-        // Check IP address
-        var ipAddress = context.Connection.RemoteIpAddress;
+        // Resolve the real client IP (supports reverse proxies)
+        var ipAddress = ResolveClientIpAddress(context);
 
         if (ipAddress != null)
         {
