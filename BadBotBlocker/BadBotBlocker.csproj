@@ -10,7 +10,7 @@
 		<Company>Sapico</Company>
 		<Product>Sapico.BadBotBlocker</Product>
 		<PackageId>Sapico.BadBotBlocker</PackageId>
-		<Version>10.0.0</Version>
+		<VersionPrefix>10.0.0</VersionPrefix>
 		<Description>ASP.NET Core middleware to block malicious bots, scrapers, and unwanted traffic using User-Agent patterns, IP ranges, and honeypot path traps. Fork of BadBotBlocker by Erik Zettersten.</Description>
 		<PackageProjectUrl>https://github.com/NicoJuicy/BadBotBlocker</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/NicoJuicy/BadBotBlocker</RepositoryUrl>
