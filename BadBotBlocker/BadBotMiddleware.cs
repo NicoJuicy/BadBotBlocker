@@ -1,5 +1,6 @@
 using System.Net;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
 namespace BadBotBlocker;
@@ -9,18 +10,25 @@ namespace BadBotBlocker;
 /// </summary>
 public sealed partial class BadBotMiddleware
 {
+    private const string HoneypotCacheKeyPrefix = "BadBotBlocker:Honeypot:";
+
     private readonly RequestDelegate next;
+    private readonly IMemoryCache memoryCache;
     private readonly List<IPatternMatcher> badBotMatchers;
     private readonly List<(IPAddress NetworkAddress, int PrefixLength)> blockedIPRanges;
+    private readonly List<string> honeypotPathPatterns;
+    private readonly TimeSpan honeypotBanDuration;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BadBotMiddleware"/> class.
     /// </summary>
     /// <param name="next">The next middleware delegate.</param>
     /// <param name="options">The options for the BadBotMiddleware.</param>
-    public BadBotMiddleware(RequestDelegate next, IOptions<BadBotOptions> options)
+    /// <param name="memoryCache">The memory cache used for honeypot IP bans.</param>
+    public BadBotMiddleware(RequestDelegate next, IOptions<BadBotOptions> options, IMemoryCache memoryCache)
     {
         this.next = next;
+        this.memoryCache = memoryCache;
 
         var badBotOptions = options.Value;
 
@@ -33,6 +41,8 @@ public sealed partial class BadBotMiddleware
             .ToList();
 
         this.blockedIPRanges = badBotOptions.BlockedIPRanges;
+        this.honeypotPathPatterns = badBotOptions.HoneypotPathPatterns;
+        this.honeypotBanDuration = badBotOptions.HoneypotBanDuration;
     }
 
     private static bool IsStartsWithPattern(string pattern)
@@ -60,6 +70,15 @@ public sealed partial class BadBotMiddleware
 
         if (ipAddress != null)
         {
+            // Check honeypot ban
+            var cacheKey = HoneypotCacheKeyPrefix + ipAddress;
+
+            if (this.memoryCache.TryGetValue(cacheKey, out _))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return;
+            }
+
             foreach (var (networkAddress, prefixLength) in this.blockedIPRanges)
             {
                 if (ipAddress.IsInSubnet(networkAddress, prefixLength))
@@ -81,6 +100,26 @@ public sealed partial class BadBotMiddleware
                 {
                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
                     return;
+                }
+            }
+        }
+
+        // Check honeypot paths
+        if (ipAddress != null && this.honeypotPathPatterns.Count > 0)
+        {
+            var path = context.Request.Path.Value;
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                foreach (var pattern in this.honeypotPathPatterns)
+                {
+                    if (path.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var cacheKey = HoneypotCacheKeyPrefix + ipAddress;
+                        this.memoryCache.Set(cacheKey, true, this.honeypotBanDuration);
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        return;
+                    }
                 }
             }
         }

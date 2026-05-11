@@ -18,6 +18,16 @@ public sealed class BadBotOptions
     public List<(IPAddress NetworkAddress, int PrefixLength)> BlockedIPRanges { get; } = [];
 
     /// <summary>
+    /// Gets the list of honeypot path patterns. Requests matching these patterns will cause the client IP to be temporarily banned.
+    /// </summary>
+    public List<string> HoneypotPathPatterns { get; } = [];
+
+    /// <summary>
+    /// Gets or sets the duration for which an IP is banned after hitting a honeypot path. Defaults to 5 minutes.
+    /// </summary>
+    public TimeSpan HoneypotBanDuration { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="BadBotOptions"/> class.
     /// </summary>
     public BadBotOptions()
@@ -25,6 +35,7 @@ public sealed class BadBotOptions
         // Load default patterns and IP ranges
         this.LoadDefaultBadBotPatterns();
         this.LoadDefaultBlockedIPRanges();
+        this.LoadDefaultHoneypotPathPatterns();
     }
 
     /// <summary>
@@ -79,6 +90,47 @@ public sealed class BadBotOptions
     {
         this.BlockedIPRanges.Clear();
         return this;
+    }
+
+    /// <summary>
+    /// Adds a honeypot path pattern. Paths containing this value (case-insensitive) will trigger a temporary IP ban.
+    /// </summary>
+    /// <param name="pattern">The path pattern to trap (e.g., ".php", ".git").</param>
+    /// <returns>The <see cref="BadBotOptions"/> instance.</returns>
+    public BadBotOptions AddHoneypotPathPattern(string pattern)
+    {
+        this.HoneypotPathPatterns.Add(pattern);
+        return this;
+    }
+
+    /// <summary>
+    /// Clears the list of honeypot path patterns.
+    /// </summary>
+    /// <returns>The <see cref="BadBotOptions"/> instance.</returns>
+    public BadBotOptions ClearHoneypotPathPatterns()
+    {
+        this.HoneypotPathPatterns.Clear();
+        return this;
+    }
+
+    /// <summary>
+    /// Loads the default honeypot path patterns.
+    /// </summary>
+    private void LoadDefaultHoneypotPathPatterns()
+    {
+        this.HoneypotPathPatterns.AddRange([
+            ".php",
+            ".git",
+            ".env",
+            "wp-admin",
+            "wp-login",
+            "wp-content",
+            "wp-includes",
+            "xmlrpc",
+            "/cgi-bin/",
+            "/admin/",
+            "phpmyadmin",
+        ]);
     }
 
     /// <summary>
