@@ -66,37 +66,32 @@ public sealed partial class BadBotMiddleware
     ];
 
     /// <summary>
-    /// Resolves the client IP address, checking common reverse proxy headers as a fallback.
-    /// For best results, use <c>UseForwardedHeaders()</c> before <c>UseBadBotBlocker()</c>.
+    /// Resolves the client IP address, prioritizing real client IP from forwarded headers.
+    /// This is defensive: works even if <c>UseForwardedHeaders()</c> isn't configured or doesn't have trusted proxies set.
     /// </summary>
     private static IPAddress? ResolveClientIpAddress(HttpContext context)
     {
-        // Prefer RemoteIpAddress (already updated by UseForwardedHeaders if configured)
-        var ipAddress = context.Connection.RemoteIpAddress;
-
-        // If it's a loopback or not set, check proxy headers as a fallback
-        if (ipAddress is null || IPAddress.IsLoopback(ipAddress))
+        // Prioritize forwarded headers (real client IP behind reverse proxies)
+        foreach (var headerName in ForwardedHeaderNames)
         {
-            foreach (var headerName in ForwardedHeaderNames)
+            var headerValue = context.Request.Headers[headerName].FirstOrDefault();
+
+            if (string.IsNullOrEmpty(headerValue))
             {
-                var headerValue = context.Request.Headers[headerName].FirstOrDefault();
+                continue;
+            }
 
-                if (string.IsNullOrEmpty(headerValue))
-                {
-                    continue;
-                }
+            // X-Forwarded-For can contain multiple IPs; the first is the client
+            var candidateIp = headerValue.Split(',', StringSplitOptions.TrimEntries)[0];
 
-                // X-Forwarded-For can contain multiple IPs; the first is the client
-                var candidateIp = headerValue.Split(',', StringSplitOptions.TrimEntries)[0];
-
-                if (IPAddress.TryParse(candidateIp, out var parsed))
-                {
-                    return parsed;
-                }
+            if (IPAddress.TryParse(candidateIp, out var parsed) && !IPAddress.IsLoopback(parsed))
+            {
+                return parsed;
             }
         }
 
-        return ipAddress;
+        // Fall back to RemoteIpAddress (direct connection or loopback in dev)
+        return context.Connection.RemoteIpAddress;
     }
 
     /// <summary>

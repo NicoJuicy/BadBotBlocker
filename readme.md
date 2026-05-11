@@ -81,9 +81,9 @@ public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 
 ### Reverse Proxy Support (Docker, Nginx, Cloudflare)
 
-If your application runs behind a reverse proxy, the middleware automatically checks `CF-Connecting-IP`, `X-Real-IP`, and `X-Forwarded-For` headers as a fallback.
+If your application runs behind a reverse proxy, the middleware **prioritizes** real client IPs from forwarded headers (`CF-Connecting-IP`, `X-Real-IP`, `X-Forwarded-For`) before falling back to `RemoteIpAddress`. This ensures honeypot bans are per-client, not per-proxy-IP, even if `UseForwardedHeaders()` is misconfigured.
 
-For best results, add `UseForwardedHeaders()` **before** `UseBadBotBlocker()`:
+For best security and clarity, also add `UseForwardedHeaders()` **before** `UseBadBotBlocker()` with trusted proxy configuration:
 
 ```csharp
 using Microsoft.AspNetCore.HttpOverrides;
@@ -95,14 +95,16 @@ var app = builder.Build();
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    KnownProxies = { IPAddress.Parse("your-proxy-ip") }, // e.g., Coolify gateway IP
+    KnownNetworks = { new IPNetwork(IPAddress.Parse("10.0.0.0"), 8) } // Docker/container networks
 });
 
 app.UseBadBotBlocker();
 app.Run();
 ```
 
-> **Note:** `UseForwardedHeaders()` updates `RemoteIpAddress` with the real client IP from proxy headers. The BadBotBlocker middleware uses this as its primary source but also parses proxy headers directly as a safety net.
+> **Note:** BadBotBlocker is defensive—it works even without `UseForwardedHeaders()` or if it's misconfigured. However, configuring `KnownProxies`/`KnownNetworks` in `UseForwardedHeaders()` is still recommended for security best practices.
 
 ## How It Works
 
