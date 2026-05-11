@@ -1,19 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Authors>Erik Zettersten</Authors>
-		<Copyright>Copyright © 2024 Erik Zettersten</Copyright>
-		<Company>BadBotBlocker</Company>
-		<Product>BadBotBlocker SDK</Product>
-		<PackageId>BadBotBlocker</PackageId>
-		<Version>$(GITHUB_REF_NAME.TrimStart('v'))</Version>
-		<Description></Description>
-		<PackageProjectUrl>https://github.com/Zettersten/BadBotBlocker</PackageProjectUrl>
-		<RepositoryUrl>https://github.com/Zettersten/BadBotBlocker</RepositoryUrl>
+		<Authors>NicoJuicy</Authors>
+		<Copyright>Copyright © 2025 NicoJuicy</Copyright>
+		<Company>Sapico</Company>
+		<Product>Sapico.BadBotBlocker</Product>
+		<PackageId>Sapico.BadBotBlocker</PackageId>
+		<Version>10.0.0</Version>
+		<Description>ASP.NET Core middleware to block malicious bots, scrapers, and unwanted traffic using User-Agent patterns, IP ranges, and honeypot path traps. Fork of BadBotBlocker by Erik Zettersten.</Description>
+		<PackageProjectUrl>https://github.com/NicoJuicy/BadBotBlocker</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/NicoJuicy/BadBotBlocker</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageIcon>icon.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -39,10 +39,10 @@
 		<DebugSymbols>true</DebugSymbols>
 	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
 

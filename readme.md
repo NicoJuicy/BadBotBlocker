@@ -1,8 +1,10 @@
-![BadBotBlocker Icon](https://raw.githubusercontent.com/Zettersten/BadBotBlocker/main/icon.png)
+![BadBotBlocker Icon](https://raw.githubusercontent.com/NicoJuicy/BadBotBlocker/main/icon.png)
 
 # BadBotBlocker 🛡️
 
-[![NuGet version](https://badge.fury.io/nu/BadBotBlocker.svg)](https://badge.fury.io/nu/BadBotBlocker)
+[![NuGet version](https://badge.fury.io/nu/Sapico.BadBotBlocker.svg)](https://badge.fury.io/nu/Sapico.BadBotBlocker)
+
+> **Note:** This is a fork of the original [BadBotBlocker](https://github.com/Zettersten/BadBotBlocker) by Erik Zettersten.
 
 Welcome to the **BadBotBlocker** ASP.NET Core middleware! This library provides an efficient and customizable way to block malicious bots, scrapers, and unwanted traffic based on User-Agent patterns and IP ranges. It leverages a popular list of rules from an `.htaccess` file and focuses on extreme performance using the latest C# features.
 
@@ -11,18 +13,19 @@ Welcome to the **BadBotBlocker** ASP.NET Core middleware! This library provides 
 The **BadBotBlocker** middleware offers:
 
 - **Default Blocking Rules**: Preloaded with a comprehensive list of bad bot User-Agent patterns and IP ranges.
-- **Customizable**: Easily add or remove patterns and IP ranges to suit your application's needs.
-- **High Performance**: Optimized pattern matching and minimal overhead.
+- **Honeypot Traps**: Automatically bans IPs that probe common attack paths (`.php`, `.git`, `.env`, `wp-admin`, etc.) for a configurable duration.
+- **Customizable**: Easily add or remove patterns, IP ranges, and honeypot paths to suit your application's needs.
+- **High Performance**: Optimized pattern matching and minimal overhead using `IMemoryCache`.
 - **Extensibility**: Provides extension methods for dependency injection and middleware configuration.
 
 ## Getting Started
 
 ### Installation
 
-You can install the **BadBotBlocker** package from [NuGet](https://www.nuget.org/packages/BadBotBlocker/):
+You can install the **BadBotBlocker** package from [NuGet](https://www.nuget.org/packages/Sapico.BadBotBlocker/):
 
 ```sh
-dotnet add package BadBotBlocker
+dotnet add package Sapico.BadBotBlocker
 ```
 
 ### Setting Up Dependency Injection
@@ -80,10 +83,12 @@ public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 
 The **BadBotBlocker** middleware intercepts incoming HTTP requests and performs the following checks:
 
-1. **IP Address Check**: Determines if the client's IP address falls within any of the blocked IP ranges.
-2. **User-Agent Check**: Matches the client's User-Agent string against a list of known bad bot patterns.
+1. **Honeypot Ban Check**: Checks if the client IP was previously banned by a honeypot trap.
+2. **IP Address Check**: Determines if the client's IP address falls within any of the blocked IP ranges.
+3. **User-Agent Check**: Matches the client's User-Agent string against a list of known bad bot patterns.
+4. **Honeypot Path Check**: If the request path matches a honeypot pattern (e.g. `.php`, `.git`, `.env`, `wp-admin`), the client IP is temporarily banned.
 
-If a match is found in either check, the middleware responds with a `403 Forbidden` status code, effectively blocking the request.
+If a match is found in any check, the middleware responds with a `403 Forbidden` status code, effectively blocking the request.
 
 ## Default Blocking Rules
 
@@ -134,8 +139,11 @@ services.AddBadBotBlocker(options =>
 |-----------------------------|-------------------------------------------------|
 | `AddBadBotPattern(string)`  | Adds a User-Agent pattern to block.             |
 | `AddBlockedIPRange(string)` | Adds an IP range in CIDR notation to block.     |
+| `AddHoneypotPathPattern(string)` | Adds a honeypot trap path pattern.         |
 | `ClearBadBotPatterns()`     | Clears all User-Agent patterns.                 |
 | `ClearBlockedIPRanges()`    | Clears all blocked IP ranges.                   |
+| `ClearHoneypotPathPatterns()` | Clears all honeypot path patterns.            |
+| `HoneypotBanDuration`       | Gets or sets the temporary ban duration (default: 5 min). |
 
 ### BadBotMiddlewareExtensions Class
 
@@ -173,7 +181,7 @@ app.UseBadBotBlocker();
 
 ## Requirements
 
-- **.NET 8.0 or higher**: The library utilizes the latest features of C# 12 and .NET 8.
+- **.NET 10.0 or higher**: The library utilizes the latest features of C# and .NET 10.
 - **ASP.NET Core Application**: Designed to work with ASP.NET Core middleware pipeline.
 
 ## License
@@ -186,7 +194,7 @@ Pull requests and contributions are welcome! Please open an issue to discuss any
 
 ## About
 
-For more information or support, please visit the [GitHub Repository](https://github.com/zettersten/BadBotBlocker).
+For more information or support, please visit the [GitHub Repository](https://github.com/NicoJuicy/BadBotBlocker).
 
 ---
 

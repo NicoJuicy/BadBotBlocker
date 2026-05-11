@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BadBotBlocker;
@@ -29,6 +30,8 @@ public static class BadBotMiddlewareExtensions
         Action<BadBotOptions>? configureOptions = null
     )
     {
+        services.AddMemoryCache();
+
         if (configureOptions != null)
         {
             services.Configure(configureOptions);
